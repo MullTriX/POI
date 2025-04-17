@@ -69,14 +69,14 @@ def save_points_to_file(filename: str, points: zip) -> None:
 # Generate and save the xy plane
 x, y, z = generate_plane(10, 10, orientation='xy')
 points = zip(x, y, z)
-save_points_to_file('plane_xy.xyz', points)
+save_points_to_file('Data/plane_xy.xyz', points)
 
 # Generate and save the yz plane
 x, y, z = generate_plane(10, 10, orientation='yz')
 points = zip(x, y, z)
-save_points_to_file('plane_yz.xyz', points)
+save_points_to_file('Data/plane_yz.xyz', points)
 
 # Generate and save the cylinder
 x, y, z = generate_cylinder(5, 20)
 points = zip(x, y, z)
-save_points_to_file('cylinder.xyz', points)
+save_points_to_file('Data/cylinder.xyz', points)
