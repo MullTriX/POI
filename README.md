@@ -1,8 +1,6 @@
 ## File Explanation
 * ``generate_plane.py`` \
     This file is responsible for creating the different planes listed in the 1st exercise and save those points in a csv file
-* ``dupa.py`` \
-    chuj
 
 ## Package Installation
 To install the packages, run one of the following commands in your terminal: \
