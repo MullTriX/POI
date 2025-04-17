@@ -1,5 +1,5 @@
 ## File Explanation
-* ``generate_plane.py`` \
+* ``generate_planes.py`` \
     This file is responsible for creating the different planes listed in the 1st exercise and save those points in a csv file
 
 ## Package Installation
