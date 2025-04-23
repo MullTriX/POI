@@ -3,7 +3,7 @@ from sklearn.cluster import KMeans
 from csv import reader
 import os
 
-def load_xyz_file(filepath):
+def load_xyz_file(filepath : str) -> np.ndarray:
     """
     Loads a .xyz file containing 3D points.
 
@@ -11,14 +11,14 @@ def load_xyz_file(filepath):
         filepath (str): Path to the .xyz file.
 
     Returns:
-        np.ndarray: Nx3 array of 3D points.
+        np.ndarray: array of 3D points.
     """
     with open(filepath, 'r') as file:
         csv_reader = reader(file, delimiter=',')
         points = np.array([list(map(float, row)) for row in csv_reader])
     return points
 
-def ransac_plane_fitting(points, threshold=0.01, max_iterations=1000):
+def ransac_plane_fitting(points: np.ndarray, threshold: float = 0.01, max_iterations: int = 1000) -> tuple:
     """
     Fits a plane to a point cloud using the RANSAC algorithm.
 
@@ -28,8 +28,7 @@ def ransac_plane_fitting(points, threshold=0.01, max_iterations=1000):
         max_iterations (int): Maximum number of iterations.
 
     Returns:
-        tuple: Best plane parameters (a, b, c, d) for the plane equation ax + by + cz + d = 0,
-               and the inliers as a boolean mask.
+        tuple: Best plane parameters (a, b, c, d) and the inliers.
     """
     best_plane = None
     best_inliers = None
@@ -39,12 +38,12 @@ def ransac_plane_fitting(points, threshold=0.01, max_iterations=1000):
         # Randomly sample 3 points
         sample = points[np.random.choice(points.shape[0], 3, replace=False)]
 
-        # Compute the plane equation ax + by + cz + d = 0
+        # Compute the plane equation
         v1 = sample[1] - sample[0]
         v2 = sample[2] - sample[0]
         normal = np.cross(v1, v2)
         if np.linalg.norm(normal) == 0:
-            continue  # Skip degenerate cases
+            continue
 
         a, b, c = normal
         d = -np.dot(normal, sample[0])
@@ -56,7 +55,7 @@ def ransac_plane_fitting(points, threshold=0.01, max_iterations=1000):
         inliers = distances < threshold
         num_inliers = np.sum(inliers)
 
-        # Update the best plane if this one has more inliers
+        # Update the best plane
         if num_inliers > max_inliers:
             max_inliers = num_inliers
             best_plane = (a, b, c, d)
@@ -64,7 +63,7 @@ def ransac_plane_fitting(points, threshold=0.01, max_iterations=1000):
 
     return best_plane, best_inliers
 
-def classify_plane(plane, points, inliers, threshold=0.01):
+def classify_plane(plane: tuple, points: np.ndarray, inliers: np.ndarray, threshold: float = 0.01) -> str:
     """
     Classifies a plane as horizontal, vertical, or not a plane.
 
@@ -85,13 +84,13 @@ def classify_plane(plane, points, inliers, threshold=0.01):
         return "not a plane"
 
     # Check orientation
-    if np.isclose(c, 0, atol=1e-2):  # Normal vector is parallel to the XY plane
+    if np.isclose(c, 0, atol=1e-2):
         return "vertical"
     else:
         return "horizontal"
 
 
-filepath = "Data/"  # Replace with the actual path to your .xyz file
+filepath = "Data/"
 for files in os.listdir(filepath):
     if files.endswith(".xyz"):
         fullpath = os.path.join(filepath, files)
@@ -100,20 +99,18 @@ for files in os.listdir(filepath):
         print("=======================================================================")
         
         points = load_xyz_file(fullpath)
+        
         # Cluster the points using K-Means
         kmeans = KMeans(n_clusters=3, random_state=42)
         labels = kmeans.fit_predict(points)
+        
         # Process each cluster
         for cluster_id in range(3):
             cluster_points = points[labels == cluster_id]
 
-            # Fit a plane using RANSAC
             plane, inliers = ransac_plane_fitting(cluster_points, threshold=0.01, max_iterations=1000)
-
-            # Classify the plane
             classification = classify_plane(plane, cluster_points, inliers)
 
-            # Print results
             print(f"Cluster {cluster_id + 1}:")
             print(f"  Plane parameters (a, b, c, d): {plane}")
             print(f"  Number of inliers: {np.sum(inliers)}")
