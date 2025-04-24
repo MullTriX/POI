@@ -1,7 +1,8 @@
 import numpy as np
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, DBSCAN
 from csv import reader
 import os
+import pyransac3d as pyrsc
 
 def load_xyz_file(filepath : str) -> np.ndarray:
     """
@@ -23,7 +24,7 @@ def ransac_plane_fitting(points: np.ndarray, threshold: float = 0.01, max_iterat
     Fits a plane to a point cloud using the RANSAC algorithm.
 
     Args:
-        points (np.ndarray): Nx3 array of 3D points.
+        points (np.ndarray): array of 3D points.
         threshold (float): Distance threshold to consider a point as an inlier.
         max_iterations (int): Maximum number of iterations.
 
@@ -35,7 +36,6 @@ def ransac_plane_fitting(points: np.ndarray, threshold: float = 0.01, max_iterat
     max_inliers = 0
 
     for _ in range(max_iterations):
-        # Randomly sample 3 points
         sample = points[np.random.choice(points.shape[0], 3, replace=False)]
 
         # Compute the plane equation
@@ -63,13 +63,18 @@ def ransac_plane_fitting(points: np.ndarray, threshold: float = 0.01, max_iterat
 
     return best_plane, best_inliers
 
+def package_ransac_plane_fitting(points: np.ndarray, threshold: float = 0.01, max_iterations: int = 1000) -> tuple:
+    plane = pyrsc.Plane()
+    best_eq, best_inliers = plane.fit(points, threshold, max_iterations)
+    return best_eq, best_inliers
+
 def classify_plane(plane: tuple, points: np.ndarray, inliers: np.ndarray, threshold: float = 0.01) -> str:
     """
     Classifies a plane as horizontal, vertical, or not a plane.
 
     Args:
         plane (tuple): Plane parameters (a, b, c, d).
-        points (np.ndarray): Nx3 array of 3D points.
+        points (np.ndarray): array of 3D points.
         inliers (np.ndarray): Boolean mask of inliers.
         threshold (float): Threshold for average distance to classify as a plane.
 
@@ -89,6 +94,35 @@ def classify_plane(plane: tuple, points: np.ndarray, inliers: np.ndarray, thresh
     else:
         return "horizontal"
 
+def process_each_cluster(points: np.ndarray, labels: np.ndarray, threshold: float = 0.01, max_iterations: int = 1000) -> None:
+    """
+    Processes each cluster of points to fit a plane and classify it.
+
+    Args:
+        points (np.ndarray): array of 3D points.
+        cluster_id (int): ID of the cluster.
+        threshold (float): Distance threshold for RANSAC.
+        max_iterations (int): Maximum number of iterations for RANSAC.
+    """
+    for cluster_id in range(3):
+            cluster_points = points[labels == cluster_id]
+            print(f"Processing cluster {cluster_id + 1}")
+            print("----> SELF-IMPLEMENTED RANSAC <----")
+            plane, inliers = ransac_plane_fitting(cluster_points, threshold, max_iterations)
+            classification = classify_plane(plane, cluster_points, inliers)
+            
+            print(f"  Plane parameters (a, b, c, d): {plane}")
+            print(f"  Number of inliers: {np.sum(inliers)}")
+            print(f"  Classification: {classification}")
+            
+            print("----> PACKAGE RANSAC <----")
+            plane, inliers = package_ransac_plane_fitting(cluster_points, threshold, max_iterations)
+            classification = classify_plane(plane, cluster_points, inliers)
+            print(f"  Plane parameters (a, b, c, d): {plane}")
+            print(f"  Number of inliers: {np.sum(inliers)}")
+            print(f"  Classification: {classification}\n")
+
+
 
 filepath = "Data/"
 for files in os.listdir(filepath):
@@ -105,13 +139,4 @@ for files in os.listdir(filepath):
         labels = kmeans.fit_predict(points)
         
         # Process each cluster
-        for cluster_id in range(3):
-            cluster_points = points[labels == cluster_id]
-
-            plane, inliers = ransac_plane_fitting(cluster_points, threshold=0.01, max_iterations=1000)
-            classification = classify_plane(plane, cluster_points, inliers)
-
-            print(f"Cluster {cluster_id + 1}:")
-            print(f"  Plane parameters (a, b, c, d): {plane}")
-            print(f"  Number of inliers: {np.sum(inliers)}")
-            print(f"  Classification: {classification}")
+        process_each_cluster(points=points, labels=labels, threshold=0.01, max_iterations=1000)
