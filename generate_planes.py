@@ -3,18 +3,20 @@ from scipy.stats import norm
 import matplotlib.pyplot as plt
 from csv import writer
 
-def generate_plane(length: int, width: int, orientation: str) -> tuple:
+def generate_plane(length: int, width: int, orientation: str, offset: tuple = (0,0,0)) -> tuple:
     """ Generates a plane in 3D space with the given length and width.
 
     Args:
         length (int): Length of the plane.
         width (int): Width of the plane.
         orientation (str): Orientation of the plane. Can be 'xy', 'yz', or 'xz'.
+        offset (tuple): Offset to apply to the plane's coordinates.
 
     Returns:
         tuple: Three lists of x, y, and z coordinates of the points on the plane.
     """
     num_points = 2000
+    x_offset, y_offset, z_offset = offset
     
     if orientation == 'xy':
         x_range = (-length, length)
@@ -31,9 +33,9 @@ def generate_plane(length: int, width: int, orientation: str) -> tuple:
     else:
         raise ValueError("Invalid orientation. Choose from 'xy', 'yz', or 'xz'.")
     
-    x = np.random.uniform(x_range[0], x_range[1], num_points)
-    y = np.random.uniform(y_range[0], y_range[1], num_points)
-    z = np.random.uniform(z_range[0], z_range[1], num_points)
+    x = np.random.uniform(x_range[0], x_range[1], num_points) + x_offset
+    y = np.random.uniform(y_range[0], y_range[1], num_points) + y_offset
+    z = np.random.uniform(z_range[0], z_range[1], num_points) + z_offset
     return (x, y, z)
 
 def generate_cylinder(radius: float, height: float) -> tuple:
@@ -46,7 +48,7 @@ def generate_cylinder(radius: float, height: float) -> tuple:
     Returns:
         tuple: Three lists of x, y, and z coordinates of the points on the cylinder.
     """
-    num_points = 5000
+    num_points = 2000
     
     theta = np.linspace(0, 2 * np.pi, num_points)
     z = np.random.uniform(0, height, num_points)
@@ -67,12 +69,12 @@ def save_points_to_file(filename: str, points: zip) -> None:
             csvwriter.writerow(point)
 
 # Generate and save the xy plane
-x, y, z = generate_plane(10, 10, orientation='xy')
+x, y, z = generate_plane(10, 10, orientation='xy', offset=(0, 30, 0))
 points = zip(x, y, z)
 save_points_to_file('Data/plane_xy.xyz', points)
 
 # Generate and save the yz plane
-x, y, z = generate_plane(10, 10, orientation='yz')
+x, y, z = generate_plane(10, 10, orientation='yz', offset=(30, 0, 0))
 points = zip(x, y, z)
 save_points_to_file('Data/plane_yz.xyz', points)
 

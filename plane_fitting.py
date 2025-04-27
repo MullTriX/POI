@@ -3,6 +3,10 @@ from sklearn.cluster import KMeans, DBSCAN
 from csv import reader
 import os
 import pyransac3d as pyrsc
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import math
+
 
 def load_xyz_file(filepath : str) -> np.ndarray:
     """
@@ -18,6 +22,7 @@ def load_xyz_file(filepath : str) -> np.ndarray:
         csv_reader = reader(file, delimiter=',')
         points = np.array([list(map(float, row)) for row in csv_reader])
     return points
+
 
 def ransac_plane_fitting(points: np.ndarray, threshold: float = 0.01, max_iterations: int = 1000) -> tuple:
     """
@@ -63,10 +68,12 @@ def ransac_plane_fitting(points: np.ndarray, threshold: float = 0.01, max_iterat
 
     return best_plane, best_inliers
 
+
 def package_ransac_plane_fitting(points: np.ndarray, threshold: float = 0.01, max_iterations: int = 1000) -> tuple:
     plane = pyrsc.Plane()
     best_eq, best_inliers = plane.fit(points, threshold, max_iterations)
     return best_eq, best_inliers
+
 
 def classify_plane(plane: tuple, points: np.ndarray, inliers: np.ndarray, threshold: float = 0.01) -> str:
     """
@@ -81,18 +88,19 @@ def classify_plane(plane: tuple, points: np.ndarray, inliers: np.ndarray, thresh
     Returns:
         str: Classification result ("horizontal", "vertical", or "not a plane").
     """
-    a, b, c, _ = plane
+    a, b, c, d = plane
     normal = np.array([a, b, c])
-    avg_distance = np.mean(np.abs(a * points[inliers, 0] + b * points[inliers, 1] + c * points[inliers, 2]) / np.linalg.norm(normal))
+    normal = normal / np.linalg.norm(normal)
+    avg_distance = np.mean(np.abs(a * points[inliers, 0] + b * points[inliers, 1] + c * points[inliers, 2] + d))
 
     if avg_distance > threshold:
         return "not a plane"
 
-    # Check orientation
     if np.isclose(c, 0, atol=1e-2):
         return "vertical"
     else:
         return "horizontal"
+
 
 def process_each_cluster(points: np.ndarray, labels: np.ndarray, threshold: float = 0.01, max_iterations: int = 1000) -> None:
     """
@@ -124,23 +132,47 @@ def process_each_cluster(points: np.ndarray, labels: np.ndarray, threshold: floa
             print(f"  Classification: {classification}\n")
 
 
+def visualize_clusters(points: np.ndarray, labels: np.ndarray, title: str) -> None:
+    """
+    Visualizes the clustered points in 3D space.
 
-filepath = "Data/"
-for files in os.listdir(filepath):
-    if files.endswith(".xyz"):
-        fullpath = os.path.join(filepath, files)
-        print("=======================================================================")
-        print(f"Processing file: {fullpath}")
-        print("=======================================================================")
-        
-        points = load_xyz_file(fullpath)
-        
-        # Cluster the points using K-Means
-        print("-----------------KMEANS CLUSTERING-----------------")
-        kmeans = KMeans(n_clusters=3, random_state=42)
-        labels = kmeans.fit_predict(points)
-        process_each_cluster(points=points, labels=labels, threshold=0.01, max_iterations=1000)
-        print("-----------------DBSCAN CLUSTERING-----------------")
-        dbscan = DBSCAN(eps=0.5, min_samples=10)
-        labels = dbscan.fit_predict(points)
-        process_each_cluster(points=points, labels=labels, threshold=0.01, max_iterations=1000)
+    Args:
+        points (np.ndarray): array of 3D points.
+        labels (np.ndarray): Cluster labels for the points.
+        title (str): Title of the plot.
+    """
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    unique_labels = set(labels)
+    for cluster_id in unique_labels:
+        if cluster_id == -1:
+            cluster_points = points[labels == cluster_id]
+            ax.scatter(cluster_points[:, 0], cluster_points[:, 1], cluster_points[:, 2], label="Noise", color="gray", alpha=0.5)
+        else:
+            cluster_points = points[labels == cluster_id]
+            ax.scatter(cluster_points[:, 0], cluster_points[:, 1], cluster_points[:, 2], label=f"Cluster {cluster_id + 1}")
+
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
+    ax.set_title(title)
+    plt.legend()
+    plt.show()
+
+points_xy = load_xyz_file("Data/plane_xy.xyz")
+points_yz = load_xyz_file("Data/plane_yz.xyz")
+points_cylinder = load_xyz_file("Data/cylinder.xyz")
+
+all_points = np.concatenate((points_xy, points_yz, points_cylinder), axis=0)
+
+print("-----------------KMEANS CLUSTERING-----------------")
+kmeans = KMeans(n_clusters=3, random_state=42)
+labels = kmeans.fit_predict(all_points)
+visualize_clusters(points=all_points, labels=labels, title="KMeans Clustering")
+process_each_cluster(points=all_points, labels=labels, threshold=0.05, max_iterations=1000)
+print("-----------------DBSCAN CLUSTERING-----------------")
+dbscan = DBSCAN(eps=2, min_samples=10)
+labels = dbscan.fit_predict(all_points)
+visualize_clusters(points=all_points, labels=labels, title="DBSCAN Clustering")
+process_each_cluster(points=all_points, labels=labels, threshold=0.05, max_iterations=1000)
