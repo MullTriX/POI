@@ -104,6 +104,7 @@ def process_each_cluster(points: np.ndarray, labels: np.ndarray, threshold: floa
         threshold (float): Distance threshold for RANSAC.
         max_iterations (int): Maximum number of iterations for RANSAC.
     """
+
     for cluster_id in range(3):
             cluster_points = points[labels == cluster_id]
             print(f"Processing cluster {cluster_id + 1}")
@@ -135,8 +136,11 @@ for files in os.listdir(filepath):
         points = load_xyz_file(fullpath)
         
         # Cluster the points using K-Means
+        print("-----------------KMEANS CLUSTERING-----------------")
         kmeans = KMeans(n_clusters=3, random_state=42)
         labels = kmeans.fit_predict(points)
-        
-        # Process each cluster
+        process_each_cluster(points=points, labels=labels, threshold=0.01, max_iterations=1000)
+        print("-----------------DBSCAN CLUSTERING-----------------")
+        dbscan = DBSCAN(eps=0.5, min_samples=10)
+        labels = dbscan.fit_predict(points)
         process_each_cluster(points=points, labels=labels, threshold=0.01, max_iterations=1000)
