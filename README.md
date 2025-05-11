@@ -5,6 +5,9 @@
 * ``plane_fitting.py`` \
     **Exercise 2** \
     This file is responsible for fitting the planes with ransac algorithm and classify them as vertical/horizonstal or no-plane
+* ``texture_classificator.ipynb`` \
+    **Exercise 3** \
+    Training the model based on the provided wall materials and testing its accuracy
 
 ## Package Installation
 To install the packages, run one of the following commands in your terminal: \
