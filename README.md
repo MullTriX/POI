@@ -8,6 +8,9 @@
 * ``texture_classificator.ipynb`` \
     **Exercise 3** \
     Training the model based on the provided wall materials and testing its accuracy
+* ``neutal_network_model.ipynb`` \
+    **Exercise 4**
+    Training Neural network on CPU and GPU with confusion-matrix visualizaton
 
 ## Package Installation
 To install the packages, run one of the following commands in your terminal: \
